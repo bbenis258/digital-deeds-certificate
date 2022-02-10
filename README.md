@@ -28,5 +28,5 @@ The project can also run using docker, here are the steps:
 Then the certificate can be accessed through this API:
 
 `
-curl -X GET {{hostname}}:9500/generate-digital-deed
+curl -X GET {{hostname}}:9500/generate-digital-deed/{{docID}}
 `
