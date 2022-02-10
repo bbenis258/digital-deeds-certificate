@@ -8,7 +8,8 @@ public interface ICertificateService {
 	/**
 	 * Generate digital deed byte [ ].
 	 *
+	 * @param docId the doc id
 	 * @return the byte [ ]
 	 */
-	byte[] generateDigitalDeed();
+	byte[] generateDigitalDeed(String docId);
 }

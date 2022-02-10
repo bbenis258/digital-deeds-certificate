@@ -26,7 +26,7 @@ public class CertificateServiceTests {
 	 */
 	@Test
 	public void testGenerateDigitalDeed() {
-		byte[] certificate = certificateService.generateDigitalDeed();
+		byte[] certificate = certificateService.generateDigitalDeed("71637");
 		Assertions.assertNotNull(certificate);
 
 		/* Printing the document */

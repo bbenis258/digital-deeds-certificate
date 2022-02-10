@@ -4,6 +4,7 @@ import com.deeds.digitalcertificate.service.ICertificateService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Base64;
@@ -23,10 +24,11 @@ public class CertificateController {
 	/**
 	 * Generate digital deed response entity.
 	 *
+	 * @param docID the doc id
 	 * @return the response entity
 	 */
-	@GetMapping("/generate-digital-deed")
-	public ResponseEntity<byte[]> generateDigitalDeed() {
-		return ResponseEntity.ok(Base64.getEncoder().encode(certificateService.generateDigitalDeed()));
+	@GetMapping("/generate-digital-deed/{docID}")
+	public ResponseEntity<byte[]> generateDigitalDeed(@PathVariable(value = "docID") String docID) {
+		return ResponseEntity.ok(Base64.getEncoder().encode(certificateService.generateDigitalDeed(docID)));
 	}
 }

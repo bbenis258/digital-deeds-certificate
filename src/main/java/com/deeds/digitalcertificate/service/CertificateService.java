@@ -1,5 +1,6 @@
 package com.deeds.digitalcertificate.service;
 
+import com.deeds.digitalcertificate.dto.DeedInfoDto;
 import com.itextpdf.text.BaseColor;
 import com.itextpdf.text.Document;
 import com.itextpdf.text.Element;
@@ -7,6 +8,7 @@ import com.itextpdf.text.Font;
 import com.itextpdf.text.Image;
 import com.itextpdf.text.PageSize;
 import com.itextpdf.text.Paragraph;
+import com.itextpdf.text.Phrase;
 import com.itextpdf.text.Rectangle;
 import com.itextpdf.text.pdf.BarcodeQRCode;
 import com.itextpdf.text.pdf.PdfPCell;
@@ -16,15 +18,21 @@ import com.itextpdf.text.pdf.qrcode.EncodeHintType;
 import com.itextpdf.text.pdf.qrcode.ErrorCorrectionLevel;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.web.reactive.function.client.WebClient;
 
 import java.awt.*;
 import java.io.ByteArrayOutputStream;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
 
 /**
- * The type Certificate service.
+ * The class Certificate service.
  */
 @Service
 public class CertificateService implements ICertificateService {
@@ -56,12 +64,38 @@ public class CertificateService implements ICertificateService {
 	private final static BaseColor white = new BaseColor(255, 255, 255, 255);
 
 	/**
+	 * Gets deed information.
+	 *
+	 * @param docId the doc id
+	 * @return the deed information
+	 */
+	private DeedInfoDto getDeedInformation(String docId) {
+		try {
+			WebClient deedInfoClient = WebClient
+					.builder()
+					.baseUrl("https://deeds-api-2-staging.dokuma.rw")
+					.defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+					.build();
+
+			WebClient.RequestHeadersSpec<?> deedInfoRequest = deedInfoClient
+					.method(HttpMethod.GET)
+					.uri("/api/lands/" + docId + "/document");
+
+			return deedInfoRequest.retrieve().bodyToMono(DeedInfoDto.class).block();
+		} catch (Exception ex) {
+			throw new RuntimeException("An error occurred while fetching the land information.", ex);
+		}
+	}
+
+	/**
 	 * Generate digital deed byte [ ].
 	 *
+	 * @param docId the doc id
 	 * @return the byte [ ]
 	 */
 	@Override
-	public byte[] generateDigitalDeed() {
+	public byte[] generateDigitalDeed(String docId) {
+		DeedInfoDto deedInfoDto = this.getDeedInformation(docId);
 		Rectangle rectangle = PageSize.A3.rotate();
 		Document document = new Document(rectangle);
 		ByteArrayOutputStream outputStream;
@@ -175,14 +209,23 @@ public class CertificateService implements ICertificateService {
 			titleContent.addCell(titleDocName);
 
 			Font docOwnerFont = new Font(Font.FontFamily.HELVETICA, 14);
-			Paragraph docOwner = new Paragraph("In favour of: {{OWNER_NAME}}", docOwnerFont);
-			PdfPCell titleDocOwner = new PdfPCell(docOwner);
+			Font docOwnerContentFont = new Font(Font.FontFamily.HELVETICA, 14, Font.BOLD);
+			Paragraph docOwnerTitle = new Paragraph("In favour of: ", docOwnerFont);
+			Paragraph docOwnerContent = new Paragraph(deedInfoDto.getNameOfGrant(), docOwnerContentFont);
+			Phrase docOwnerPhrase = new Phrase();
+			docOwnerPhrase.add(docOwnerTitle);
+			docOwnerPhrase.add(docOwnerContent);
+			PdfPCell titleDocOwner = new PdfPCell(docOwnerPhrase);
 			titleDocOwner.setPaddingTop(200);
 			titleDocOwner.setPaddingLeft(30);
 			titleDocOwner.setBorder(Rectangle.NO_BORDER);
 			titleContent.addCell(titleDocOwner);
-			Paragraph docIdentifier = new Paragraph("Unique Plot Identifier Number: {{PLOT_UNIQUE_IDENTIFIER}}", docOwnerFont);
-			PdfPCell titleDocIdentifier = new PdfPCell(docIdentifier);
+			Paragraph docIdentifierTitle = new Paragraph("Unique Plot Identifier Number: ", docOwnerFont);
+			Paragraph docIdentifierContent = new Paragraph(deedInfoDto.getTitleNumber(), docOwnerContentFont);
+			Phrase docIdentifierPhrase = new Phrase();
+			docIdentifierPhrase.add(docIdentifierTitle);
+			docIdentifierPhrase.add(docIdentifierContent);
+			PdfPCell titleDocIdentifier = new PdfPCell(docIdentifierPhrase);
 			titleDocIdentifier.setPaddingTop(10);
 			titleDocIdentifier.setPaddingLeft(30);
 			titleDocIdentifier.setBorder(Rectangle.NO_BORDER);
@@ -216,12 +259,23 @@ public class CertificateService implements ICertificateService {
 			backContent.setWidthPercentage(100);
 
 			Font backContentFont = new Font(Font.FontFamily.HELVETICA, 12);
+			Font backContentBoldFont = new Font(Font.FontFamily.HELVETICA, 12, Font.BOLD);
 			Paragraph backPar1 = new Paragraph("By the President of the Republic of Zimbabwe, in terms of Cabinet Minute No. 316 of 1985.", backContentFont);
 			PdfPCell backCell1 = new PdfPCell(backPar1);
 			backCell1.setBorder(Rectangle.NO_BORDER);
 			backContent.addCell(backCell1);
-			Paragraph backPar2 = new Paragraph("I do hereby grant unto {{GRANTEE_NAME}}\nHereinafter referred to as the owner, a piece of land measuring {{LAND_MEASUREMENTS}}.", backContentFont);
-			PdfPCell backCell2 = new PdfPCell(backPar2);
+			Paragraph backPar2_1 = new Paragraph("I do hereby grant unto ", backContentFont);
+			Paragraph backPar2_2 = new Paragraph(deedInfoDto.getNameOfGrant(), backContentBoldFont);
+			Paragraph backPar2_3 = new Paragraph("\nHereinafter referred to as the owner, a piece of land measuring ", backContentFont);
+			Paragraph backPar2_4 = new Paragraph(deedInfoDto.getExtent() + " " + deedInfoDto.getUnitOfExt(), backContentBoldFont);
+			Paragraph backPar2_5 = new Paragraph(".", backContentFont);
+			Phrase backParPhrase2 = new Phrase();
+			backParPhrase2.add(backPar2_1);
+			backParPhrase2.add(backPar2_2);
+			backParPhrase2.add(backPar2_3);
+			backParPhrase2.add(backPar2_4);
+			backParPhrase2.add(backPar2_5);
+			PdfPCell backCell2 = new PdfPCell(backParPhrase2);
 			backCell2.setPaddingTop(12);
 			backCell2.setLeading(1, 1.3f);
 			backCell2.setBorder(Rectangle.NO_BORDER);
@@ -238,8 +292,12 @@ public class CertificateService implements ICertificateService {
 			backCell4.setLeading(1, 1.3f);
 			backCell4.setBorder(Rectangle.NO_BORDER);
 			backContent.addCell(backCell4);
-			Paragraph backPar5 = new Paragraph("In the district of {{DISTRICT_NAME}}", backContentFont);
-			PdfPCell backCell5 = new PdfPCell(backPar5);
+			Paragraph backPar5_1 = new Paragraph("In the district of ", backContentFont);
+			Paragraph backPar5_2 = new Paragraph(deedInfoDto.getDistrict(), backContentBoldFont);
+			Phrase backParPhrase5 = new Phrase();
+			backParPhrase5.add(backPar5_1);
+			backParPhrase5.add(backPar5_2);
+			PdfPCell backCell5 = new PdfPCell(backParPhrase5);
 			backCell5.setPaddingTop(12);
 			backCell5.setLeading(1, 1.3f);
 			backCell5.setBorder(Rectangle.NO_BORDER);
@@ -266,8 +324,21 @@ public class CertificateService implements ICertificateService {
 			backCell8.setLeading(1, 1.3f);
 			backCell8.setBorder(Rectangle.NO_BORDER);
 			backContent.addCell(backCell8);
-			Paragraph backPar9 = new Paragraph("Given under my hand at Harare this {{DAY_OF_THE_MONTH}} day of {{MONTH_OF_THE_YEAR}} {{YEAR}}.", backContentFont);
-			PdfPCell backCell9 = new PdfPCell(backPar9);
+			LocalDate grantDate = LocalDate.parse(deedInfoDto.getDateOfGrant(), DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+			Paragraph backPar9_1 = new Paragraph("Given under my hand at Harare this ", backContentFont);
+			Paragraph backPar9_2 = new Paragraph(String.valueOf(grantDate.getDayOfMonth()) + this.getDayOfMonthSuffix(grantDate.getDayOfMonth()), backContentBoldFont);
+			Paragraph backPar9_3 = new Paragraph(" day of ", backContentFont);
+			Paragraph backPar9_4 = new Paragraph(grantDate.getMonth().toString(), backContentBoldFont);
+			Paragraph backPar9_5 = new Paragraph(" " + String.valueOf(grantDate.getYear()), backContentBoldFont);
+			Paragraph backPar9_6 = new Paragraph(".", backContentFont);
+			Phrase backParPhrase9 = new Phrase();
+			backParPhrase9.add(backPar9_1);
+			backParPhrase9.add(backPar9_2);
+			backParPhrase9.add(backPar9_3);
+			backParPhrase9.add(backPar9_4);
+			backParPhrase9.add(backPar9_5);
+			backParPhrase9.add(backPar9_6);
+			PdfPCell backCell9 = new PdfPCell(backParPhrase9);
 			backCell9.setPaddingTop(45);
 			backCell9.setLeading(1, 1.3f);
 			backCell9.setBorder(Rectangle.NO_BORDER);
@@ -443,5 +514,30 @@ public class CertificateService implements ICertificateService {
 		whiteShade.setFixedHeight(10);
 		flags.addCell(whiteShade);
 		return flags;
+	}
+
+	/**
+	 * Gets day of month suffix.
+	 *
+	 * @param n the n
+	 * @return the day of month suffix
+	 */
+	private String getDayOfMonthSuffix(final int n) {
+		if (!(n >= 1 && n <= 31)) {
+			throw new RuntimeException("Illegal dat of the month: " + n);
+		}
+		if (n >= 11 && n <= 13) {
+			return "th";
+		}
+		switch (n % 10) {
+			case 1:
+				return "st";
+			case 2:
+				return "nd";
+			case 3:
+				return "rd";
+			default:
+				return "th";
+		}
 	}
 }
