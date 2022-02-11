@@ -11,6 +11,7 @@ import com.itextpdf.text.Paragraph;
 import com.itextpdf.text.Phrase;
 import com.itextpdf.text.Rectangle;
 import com.itextpdf.text.pdf.BarcodeQRCode;
+import com.itextpdf.text.pdf.BaseFont;
 import com.itextpdf.text.pdf.PdfPCell;
 import com.itextpdf.text.pdf.PdfPTable;
 import com.itextpdf.text.pdf.PdfWriter;
@@ -30,6 +31,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 
 /**
  * The class Certificate service.
@@ -39,29 +41,36 @@ public class CertificateService implements ICertificateService {
 
 
 	/**
-	 * The constant black.
+	 * The constant BLACK.
 	 */
-	private final static BaseColor black = new BaseColor(0, 0, 0, 255);
+	private final static BaseColor BLACK = new BaseColor(0, 0, 0, 255);
 
 	/**
-	 * The constant red.
+	 * The constant RED.
 	 */
-	private final static BaseColor red = new BaseColor(244, 0, 42, 255);
+	private final static BaseColor RED = new BaseColor(244, 0, 42, 255);
 
 	/**
-	 * The constant orange.
+	 * The constant ORANGE.
 	 */
-	private final static BaseColor orange = new BaseColor(255, 196, 0, 255);
+	private final static BaseColor ORANGE = new BaseColor(255, 196, 0, 255);
 
 	/**
-	 * The constant green.
+	 * The constant GREEN.
 	 */
-	private final static BaseColor green = new BaseColor(0, 136, 57, 255);
+	private final static BaseColor GREEN = new BaseColor(0, 136, 57, 255);
 
 	/**
-	 * The constant white.
+	 * The constant WHITE.
 	 */
-	private final static BaseColor white = new BaseColor(255, 255, 255, 255);
+	private final static BaseColor WHITE = new BaseColor(255, 255, 255, 255);
+
+	/**
+	 * The constant BASKERVILE_SEMIBOLD.
+	 */
+	public static final String BASKERVILE_SEMIBOLD = new ClassPathResource("fonts/BaskervilleSemiBold.ttf").getPath();
+
+	public static final String HELVETICANEUE_ROMAN = new ClassPathResource("fonts/HelveticaNeue-Roman.otf").getPath();
 
 	/**
 	 * Gets deed information.
@@ -111,6 +120,18 @@ public class CertificateService implements ICertificateService {
 			throw new RuntimeException("An error occurred while creating the PdfWriter object.", ex);
 		}
 
+		try {
+			Resource backgroundResource = new ClassPathResource("images/Background.png");
+			Image backgroundImage = Image.getInstance(backgroundResource.getURL());
+			backgroundImage.setAbsolutePosition(-55, -128);
+			writer.setPageEvent(new BackgroundPageEvent(backgroundImage));
+			Image backgroundImageTwo = Image.getInstance(backgroundResource.getURL());
+			backgroundImageTwo.setAbsolutePosition(595, -128);
+			writer.setPageEvent(new BackgroundPageEvent(backgroundImageTwo));
+		} catch (Exception ex) {
+			throw new RuntimeException("An error occurred while adding the page background.", ex);
+		}
+
 		document.open();
 
 		try {
@@ -151,7 +172,7 @@ public class CertificateService implements ICertificateService {
 			PdfPCell leftPart = new PdfPCell(leftContainer);
 			leftPart.setBorderWidth(1.5f);
 			leftPart.setBorderWidthRight(0);
-			leftPart.setBorderColor(green);
+			leftPart.setBorderColor(GREEN);
 
 			PdfPTable rightContainer = new PdfPTable(new float[]{1f, 4f});
 			rightContainer.setWidthPercentage(100);
@@ -176,7 +197,8 @@ public class CertificateService implements ICertificateService {
 			titleContent.addCell(sealHeader);
 			titleContent.addCell(seal);
 
-			Font institutionFont = new Font(Font.FontFamily.HELVETICA, 20);
+			BaseFont institutionBaseFont = BaseFont.createFont(HELVETICANEUE_ROMAN, BaseFont.WINANSI, BaseFont.EMBEDDED);
+			Font institutionFont = new Font(institutionBaseFont, 20);
 			Paragraph institutionOne = new Paragraph("REPUBLIC OF ZIMBABWE", institutionFont);
 			institutionOne.setAlignment(Element.ALIGN_CENTER);
 			PdfPCell titleInstitutionOne = new PdfPCell(institutionOne);
@@ -199,7 +221,8 @@ public class CertificateService implements ICertificateService {
 			titleInstitutionThree.setBorder(Rectangle.NO_BORDER);
 			titleContent.addCell(titleInstitutionThree);
 
-			Font docNameFont = new Font(Font.FontFamily.TIMES_ROMAN, 40, Font.BOLD);
+			BaseFont docNameBaseFont = BaseFont.createFont(BASKERVILE_SEMIBOLD, BaseFont.WINANSI, BaseFont.EMBEDDED);
+			Font docNameFont = new Font(docNameBaseFont, 40, Font.BOLD);
 			Paragraph docName = new Paragraph("Deed of Grant", docNameFont);
 			docName.setAlignment(Element.ALIGN_CENTER);
 			PdfPCell titleDocName = new PdfPCell(docName);
@@ -208,8 +231,8 @@ public class CertificateService implements ICertificateService {
 			titleDocName.setBorder(Rectangle.NO_BORDER);
 			titleContent.addCell(titleDocName);
 
-			Font docOwnerFont = new Font(Font.FontFamily.HELVETICA, 14);
-			Font docOwnerContentFont = new Font(Font.FontFamily.HELVETICA, 14, Font.BOLD);
+			Font docOwnerFont = new Font(institutionBaseFont, 14);
+			Font docOwnerContentFont = new Font(institutionBaseFont, 14, Font.BOLD);
 			Paragraph docOwnerTitle = new Paragraph("In favour of: ", docOwnerFont);
 			Paragraph docOwnerContent = new Paragraph(deedInfoDto.getNameOfGrant(), docOwnerContentFont);
 			Phrase docOwnerPhrase = new Phrase();
@@ -238,7 +261,7 @@ public class CertificateService implements ICertificateService {
 			PdfPCell rightPart = new PdfPCell(rightContainer);
 			rightPart.setBorderWidth(1.5f);
 			rightPart.setBorderWidthLeft(0);
-			rightPart.setBorderColor(green);
+			rightPart.setBorderColor(GREEN);
 			rightPart.setPaddingLeft(10);
 
 			container.addCell(leftPart);
@@ -258,8 +281,8 @@ public class CertificateService implements ICertificateService {
 			PdfPTable backContent = new PdfPTable(1);
 			backContent.setWidthPercentage(100);
 
-			Font backContentFont = new Font(Font.FontFamily.HELVETICA, 12);
-			Font backContentBoldFont = new Font(Font.FontFamily.HELVETICA, 12, Font.BOLD);
+			Font backContentFont = new Font(institutionBaseFont, 12);
+			Font backContentBoldFont = new Font(institutionBaseFont, 12, Font.BOLD);
 			Paragraph backPar1 = new Paragraph("By the President of the Republic of Zimbabwe, in terms of Cabinet Minute No. 316 of 1985.", backContentFont);
 			PdfPCell backCell1 = new PdfPCell(backPar1);
 			backCell1.setBorder(Rectangle.NO_BORDER);
@@ -280,8 +303,12 @@ public class CertificateService implements ICertificateService {
 			backCell2.setLeading(1, 1.3f);
 			backCell2.setBorder(Rectangle.NO_BORDER);
 			backContent.addCell(backCell2);
-			Paragraph backPar3 = new Paragraph("Called Stand {{CALLED_STAND}}", backContentFont);
-			PdfPCell backCell3 = new PdfPCell(backPar3);
+			Paragraph backPar3_1 = new Paragraph("Called ", backContentFont);
+			Paragraph backPar3_2 = new Paragraph(deedInfoDto.getPropertyDescr(), backContentBoldFont);
+			Phrase backParPhrase3 = new Phrase();
+			backParPhrase3.add(backPar3_1);
+			backParPhrase3.add(backPar3_2);
+			PdfPCell backCell3 = new PdfPCell(backParPhrase3);
 			backCell3.setPaddingTop(12);
 			backCell3.setLeading(1, 1.3f);
 			backCell3.setBorder(Rectangle.NO_BORDER);
@@ -302,9 +329,19 @@ public class CertificateService implements ICertificateService {
 			backCell5.setLeading(1, 1.3f);
 			backCell5.setBorder(Rectangle.NO_BORDER);
 			backContent.addCell(backCell5);
-			Paragraph backPar6 = new Paragraph("And represented and described on General Plan {{GENERAL_PLAN_NUMBER}} dated {{GENERAL_PLAN_DATE}} " +
-					"filed in the office of the Surveyor-General, upon the following conditions,viz,:", backContentFont);
-			PdfPCell backCell6 = new PdfPCell(backPar6);
+			Paragraph backPar6_1 = new Paragraph("And represented and described on General Plan ", backContentFont);
+			Paragraph backPar6_2 = new Paragraph(String.valueOf(new Random().nextInt()), backContentBoldFont);
+			Paragraph backPar6_3 = new Paragraph(" dated ", backContentFont);
+			Paragraph backPar6_4 = new Paragraph(LocalDate.now().getDayOfMonth() + this.getDayOfMonthSuffix(LocalDate.now().getDayOfMonth()) + " " +
+					LocalDate.now().getMonth().toString() + ", " + LocalDate.now().getYear(), backContentBoldFont);
+			Paragraph backPar6_5 = new Paragraph(" filed in the office of the Surveyor-General, upon the following conditions,viz,:", backContentFont);
+			Phrase backParPhrase6 = new Phrase();
+			backParPhrase6.add(backPar6_1);
+			backParPhrase6.add(backPar6_2);
+			backParPhrase6.add(backPar6_3);
+			backParPhrase6.add(backPar6_4);
+			backParPhrase6.add(backPar6_5);
+			PdfPCell backCell6 = new PdfPCell(backParPhrase6);
 			backCell6.setPaddingTop(12);
 			backCell6.setLeading(1, 1.3f);
 			backCell6.setBorder(Rectangle.NO_BORDER);
@@ -326,10 +363,10 @@ public class CertificateService implements ICertificateService {
 			backContent.addCell(backCell8);
 			LocalDate grantDate = LocalDate.parse(deedInfoDto.getDateOfGrant(), DateTimeFormatter.ofPattern("dd/MM/yyyy"));
 			Paragraph backPar9_1 = new Paragraph("Given under my hand at Harare this ", backContentFont);
-			Paragraph backPar9_2 = new Paragraph(String.valueOf(grantDate.getDayOfMonth()) + this.getDayOfMonthSuffix(grantDate.getDayOfMonth()), backContentBoldFont);
+			Paragraph backPar9_2 = new Paragraph(grantDate.getDayOfMonth() + this.getDayOfMonthSuffix(grantDate.getDayOfMonth()), backContentBoldFont);
 			Paragraph backPar9_3 = new Paragraph(" day of ", backContentFont);
 			Paragraph backPar9_4 = new Paragraph(grantDate.getMonth().toString(), backContentBoldFont);
-			Paragraph backPar9_5 = new Paragraph(" " + String.valueOf(grantDate.getYear()), backContentBoldFont);
+			Paragraph backPar9_5 = new Paragraph(" " + grantDate.getYear(), backContentBoldFont);
 			Paragraph backPar9_6 = new Paragraph(".", backContentFont);
 			Phrase backParPhrase9 = new Phrase();
 			backParPhrase9.add(backPar9_1);
@@ -363,7 +400,7 @@ public class CertificateService implements ICertificateService {
 			PdfPCell leftPartPageTwo = new PdfPCell(backContent);
 			leftPartPageTwo.setBorderWidth(1.5f);
 			leftPartPageTwo.setBorderWidthRight(0);
-			leftPartPageTwo.setBorderColor(green);
+			leftPartPageTwo.setBorderColor(GREEN);
 			leftPartPageTwo.setPaddingLeft(30);
 			leftPartPageTwo.setPaddingTop(15);
 			leftPartPageTwo.setPaddingBottom(10);
@@ -375,49 +412,56 @@ public class CertificateService implements ICertificateService {
 			mainMapCell.setColspan(3);
 			mainMapCell.setFixedHeight(470);
 			mainMapCell.setBorderWidth(2);
-			mainMapCell.setBorderColor(green);
+			mainMapCell.setBorderColor(GREEN);
+			mainMapCell.setBackgroundColor(WHITE);
 			mapTable.addCell(mainMapCell);
 
 			PdfPCell middleEmpty1 = new PdfPCell(new Paragraph(" "));
 			middleEmpty1.setFixedHeight(30);
 			middleEmpty1.setBorderWidth(2);
-			middleEmpty1.setBorderColor(green);
+			middleEmpty1.setBorderColor(GREEN);
+			middleEmpty1.setBackgroundColor(WHITE);
 			mapTable.addCell(middleEmpty1);
 
 			PdfPCell middleEmpty2 = new PdfPCell(new Paragraph(" "));
 			middleEmpty2.setFixedHeight(30);
 			middleEmpty2.setBorderWidth(2);
-			middleEmpty2.setBorderColor(green);
+			middleEmpty2.setBorderColor(GREEN);
+			middleEmpty2.setBackgroundColor(WHITE);
 			mapTable.addCell(middleEmpty2);
 
 			PdfPCell middleEmpty3 = new PdfPCell(new Paragraph(" "));
 			middleEmpty3.setFixedHeight(30);
 			middleEmpty3.setBorderWidth(2);
-			middleEmpty3.setBorderColor(green);
+			middleEmpty3.setBorderColor(GREEN);
+			middleEmpty3.setBackgroundColor(WHITE);
 			mapTable.addCell(middleEmpty3);
 
 			PdfPCell miniMap1 = new PdfPCell(new Paragraph(" "));
 			miniMap1.setFixedHeight(180);
 			miniMap1.setBorderWidth(2);
-			miniMap1.setBorderColor(green);
+			miniMap1.setBorderColor(GREEN);
+			miniMap1.setBackgroundColor(WHITE);
 			mapTable.addCell(miniMap1);
 
 			PdfPCell miniMap2 = new PdfPCell(new Paragraph(" "));
 			miniMap2.setFixedHeight(180);
 			miniMap2.setBorderWidth(2);
-			miniMap2.setBorderColor(green);
+			miniMap2.setBorderColor(GREEN);
+			miniMap2.setBackgroundColor(WHITE);
 			mapTable.addCell(miniMap2);
 
 			PdfPCell miniMap3 = new PdfPCell(new Paragraph(" "));
 			miniMap3.setFixedHeight(180);
 			miniMap3.setBorderWidth(2);
-			miniMap3.setBorderColor(green);
+			miniMap3.setBorderColor(GREEN);
+			miniMap3.setBackgroundColor(WHITE);
 			mapTable.addCell(miniMap3);
 
 			PdfPCell rightPartPageTwo = new PdfPCell(mapTable);
 			rightPartPageTwo.setBorderWidth(1.5f);
 			rightPartPageTwo.setBorderWidthLeft(0);
-			rightPartPageTwo.setBorderColor(green);
+			rightPartPageTwo.setBorderColor(GREEN);
 			rightPartPageTwo.setPaddingTop(15);
 			rightPartPageTwo.setPaddingRight(20);
 			rightPartPageTwo.setPaddingBottom(10);
@@ -439,19 +483,19 @@ public class CertificateService implements ICertificateService {
 			/* black color of the flag */
 			PdfPCell blackShade = new PdfPCell(new Paragraph(" "));
 			blackShade.setFixedHeight(15);
-			blackShade.setBackgroundColor(black);
+			blackShade.setBackgroundColor(BLACK);
 			/* red color of the flag */
 			PdfPCell redShade = new PdfPCell(new Paragraph(" "));
 			redShade.setFixedHeight(15);
-			redShade.setBackgroundColor(red);
+			redShade.setBackgroundColor(RED);
 			/* orange color of the flag */
 			PdfPCell orangeShade = new PdfPCell(new Paragraph(" "));
 			orangeShade.setFixedHeight(15);
-			orangeShade.setBackgroundColor(orange);
+			orangeShade.setBackgroundColor(ORANGE);
 			/* green color of the flag */
 			PdfPCell greenShade = new PdfPCell(new Paragraph(" "));
 			greenShade.setFixedHeight(15);
-			greenShade.setBackgroundColor(green);
+			greenShade.setBackgroundColor(GREEN);
 
 			flags.addCell(blackShade);
 			flags.addCell(redShade);
@@ -483,23 +527,23 @@ public class CertificateService implements ICertificateService {
 		/* black color of the flag */
 		PdfPCell blackShade = new PdfPCell(new Paragraph(" "));
 		blackShade.setFixedHeight(40);
-		blackShade.setBackgroundColor(black);
+		blackShade.setBackgroundColor(BLACK);
 		/* red color of the flag */
 		PdfPCell redShade = new PdfPCell(new Paragraph(" "));
 		redShade.setFixedHeight(40);
-		redShade.setBackgroundColor(red);
+		redShade.setBackgroundColor(RED);
 		/* orange color of the flag */
 		PdfPCell orangeShade = new PdfPCell(new Paragraph(" "));
 		orangeShade.setFixedHeight(40);
-		orangeShade.setBackgroundColor(orange);
+		orangeShade.setBackgroundColor(ORANGE);
 		/* green color of the flag */
 		PdfPCell greenShade = new PdfPCell(new Paragraph(" "));
 		greenShade.setFixedHeight(40);
-		greenShade.setBackgroundColor(green);
+		greenShade.setBackgroundColor(GREEN);
 		/* white color of the flag */
 		PdfPCell whiteShade = new PdfPCell(new Paragraph(" "));
 		whiteShade.setFixedHeight(40);
-		whiteShade.setBackgroundColor(white);
+		whiteShade.setBackgroundColor(WHITE);
 		for (int i = 0; i < 3; i++) {
 			flags.addCell(blackShade);
 			flags.addCell(redShade);
